@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مصنع الهويات</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;600&display=swap">
+<style>
+:root{--ink:#101828;--desk:#D5DCE6;--soft:#EEF1F6;--blue:#2540FF;--muted:#4B5565;--err:#B42318;--ok:#067647}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--soft);color:var(--ink);font:400 15px/1.65 'Readex Pro',system-ui,sans-serif}
+header{display:flex;align-items:center;gap:20px;padding:10px 20px;background:#fff;border-bottom:1px solid var(--ink);position:sticky;top:0;z-index:5}
+h1{font-size:20px;font-weight:600;margin:0;flex:1}
+.layout{display:grid;grid-template-columns:350px 1fr;min-height:calc(100vh - 56px)}
+.panel{background:#fff;border-inline-end:1px solid var(--ink);padding:18px;display:flex;flex-direction:column;gap:10px}
+.desk{background:var(--desk);padding:24px;display:flex;flex-direction:column;gap:16px;min-width:0}
+label,.lbl{font-size:13px;color:var(--muted);display:block}
+input[type=text],input[type=password],textarea,select{width:100%;font:inherit;color:var(--ink);background:#fff;border:1px solid var(--ink);border-radius:2px;padding:8px 10px;min-height:40px}
+textarea{resize:vertical}
+hr{border:0;border-top:1px solid var(--ink);margin:8px 0;width:100%}
+.btn{font:inherit;border:1px solid var(--ink);background:#fff;color:var(--ink);border-radius:2px;padding:8px 14px;min-height:40px;cursor:pointer}
+.btn:hover{background:var(--soft)}
+.btn.p{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn:disabled{opacity:.5;cursor:wait}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.msg{margin:0;min-height:1.4em;font-size:13px;color:var(--muted)}
+.msg.err{color:var(--err)}.msg.ok{color:var(--ok)}
+.small{font-size:13px;color:var(--muted);margin:0}
+.seg{display:flex}
+.seg button{flex:1;font:inherit;font-size:13px;border:1px solid var(--ink);background:#fff;padding:7px 4px;min-height:38px;cursor:pointer;margin-inline-start:-1px}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+.sheet{background:#fff;border:1px solid var(--ink)}
+#board{display:block;width:100%;height:auto}
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.cell{background:#fff;border:1px solid var(--ink);display:flex;flex-direction:column}
+.cell .im{aspect-ratio:1;display:grid;place-items:center;padding:8px;background-image:linear-gradient(45deg,#E4E8EF 25%,transparent 25%,transparent 75%,#E4E8EF 75%),linear-gradient(45deg,#E4E8EF 25%,transparent 25%,transparent 75%,#E4E8EF 75%);background-size:16px 16px;background-position:0 0,8px 8px}
+.cell img{max-width:100%;max-height:100%;display:block}
+.cell .cap{padding:6px 8px;font-size:12px;overflow-wrap:anywhere;border-top:1px solid var(--ink)}
+.cell a{display:block;text-align:center;border-top:1px solid #C3CAD6;padding:6px;color:var(--blue);text-decoration:none;font-size:13px}
+dialog{border:1px solid var(--ink);border-radius:2px;padding:20px;max-width:460px;width:calc(100% - 32px)}
+dialog::backdrop{background:rgba(16,24,40,.5)}
+dialog h2{margin:0 0 8px;font-size:17px}
+.warn{font-size:13px;background:#FFF4D6;border:1px solid #D9B44A;padding:8px 10px;margin:8px 0}
+@media (max-width:860px){.layout{grid-template-columns:1fr}.panel{border-inline-end:0;border-bottom:1px solid var(--ink)}.desk{padding:14px}}
+</style>
+</head>
+<body>
+<header><h1>مصنع الهويات</h1><button class="btn" id="keybtn">إعدادات Gemini</button></header>
+
+<main class="layout">
+<aside class="panel">
+  <div><label for="name">اسم العلامة</label><input type="text" id="name" autocomplete="off"></div>
+  <div><label for="desc">وصف النشاط والجمهور</label><textarea id="desc" rows="3"></textarea></div>
+  <div><label for="style">الطابع</label>
+    <select id="style">
+      <option value="minimal modern">عصري بسيط</option>
+      <option value="luxury elegant">فاخر وأنيق</option>
+      <option value="playful colorful">مرح وملوّن</option>
+      <option value="bold geometric">جريء وهندسي</option>
+      <option value="traditional Arabic calligraphy inspired">خط عربي تراثي</option>
+    </select></div>
+  <button class="btn p" id="gen">صمّم الهوية</button>
+  <p class="msg" id="gmsg"></p>
+  <hr>
+  <div><label for="edit">تعديل بالكلام</label>
+    <textarea id="edit" rows="2" placeholder="مثال: اجعل الشعار أغمق وغيّر الأيقونة إلى هلال"></textarea></div>
+  <button class="btn" id="editgo" disabled>طبّق التعديل</button>
+  <div><span class="lbl">طريقة القص</span>
+    <div class="seg" id="seg-mode"><button data-v="mask">بالقناع (شفاف)</button><button data-v="box">بالصندوق</button></div></div>
+</aside>
+<section class="desk">
+  <p class="small" id="brief"></p>
+  <div class="sheet" id="boardwrap" hidden><img id="board" alt="لوحة الهوية"></div>
+  <div class="row" id="boardact" hidden><button class="btn" id="dlboard">تحميل اللوحة</button><button class="btn p" id="zipall">تحميل كل العناصر (ZIP)</button></div>
+  <div class="gal" id="gal"></div>
+</section>
+</main>
+
+<dialog id="keydlg">
+  <h2>إعدادات Gemini</h2>
+  <p class="warn">المفتاح يُحفظ في متصفحك ويُرسل إلى Google مباشرة. قيّده من Google Cloud بنطاق موقعك وحدد حداً يومياً.</p>
+  <label for="keyin">المفتاح</label><input type="password" id="keyin" dir="ltr" autocomplete="off">
+  <label for="mtext">نموذج النص والفصل</label><input type="text" id="mtext" dir="ltr">
+  <label for="mimg">نموذج الصور</label><input type="text" id="mimg" dir="ltr">
+  <label style="display:flex;gap:8px;margin-top:8px"><input type="checkbox" id="remember"> تذكّر المفتاح على هذا الجهاز</label>
+  <p class="msg" id="kmsg"></p>
+  <div class="row"><button class="btn p" id="keysave">حفظ</button><button class="btn" id="keyclose">إغلاق</button></div>
+</dialog>
+
+<script>
+'use strict';
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const say=(el,m,k='')=>{el.textContent=m;el.className='msg '+k};
+const safeName=s=>String(s).replace(/[\\/:*?"<>|]+/g,'-').trim()||'file';
+const sg=k=>{try{return localStorage.getItem(k)||sessionStorage.getItem(k)||''}catch{return''}};
+const ss=(k,v,p)=>{try{localStorage.removeItem(k);sessionStorage.removeItem(k);if(v)(p?localStorage:sessionStorage).setItem(k,v)}catch{}};
+const loadImg=src=>new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('تعذّر تحميل الصورة'));i.src=src});
+function dl(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
+async function busy(b,fn){b.disabled=true;try{await fn()}finally{b.disabled=false}}
+const parseJSON=t=>JSON.parse(t.replace(/^\s*```(?:json)?\s*/i,'').replace(/\s*```\s*$/,''));
+
+/* ---------- Gemini ---------- */
+const M=()=>({text:sg('hf_mtext')||'gemini-2.5-flash',image:sg('hf_mimg')||'gemini-3.1-flash-image'});
+async function call(model,body,ver){
+  const key=sg('hf_key');if(!key)throw new Error('أضف مفتاح Gemini من زر «إعدادات Gemini».');
+  const r=await fetch(`https://generativelanguage.googleapis.com/${ver}/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body)});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error((d.error&&d.error.message)||('خطأ '+r.status)+(r.status===429?' — تجاوزت الحد المسموح.':''));
+  return d;
+}
+const partsOf=d=>(d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts)||[];
+async function gemText(parts){
+  const d=await call(M().text,{contents:[{parts}],generationConfig:{responseMimeType:'application/json'}},'v1beta');
+  const t=partsOf(d).map(p=>p.text||'').join('');if(!t)throw new Error('رجع الرد فارغاً.');return t;
+}
+async function gemImage(parts){
+  const d=await call(M().image,{contents:[{parts}],generationConfig:{responseModalities:['TEXT','IMAGE']}},'v1');
+  const ps=partsOf(d),p=ps.find(x=>x.inlineData||x.inline_data);
+  if(!p){const t=ps.map(x=>x.text||'').join(' ').trim();throw new Error('لم يرجع النموذج صورة.'+(t?' قال: '+t.slice(0,200):''))}
+  const i=p.inlineData||p.inline_data;return {mime:i.mimeType||i.mime_type||'image/png',data:i.data};
+}
+
+/* ---------- ZIP ---------- */
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+const crc32=b=>{let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=CRC[(c^b[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0};
+function makeZip(files){
+  const enc=new TextEncoder(),chunks=[],central=[];let off=0;
+  for(const f of files){
+    const nm=enc.encode(f.name),crc=crc32(f.data),sz=f.data.length,lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(6,0x0800,true);lh.setUint16(12,0x21,true);
+    lh.setUint32(14,crc,true);lh.setUint32(18,sz,true);lh.setUint32(22,sz,true);lh.setUint16(26,nm.length,true);
+    chunks.push(new Uint8Array(lh.buffer),nm,f.data);
+    const ch=new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true);ch.setUint16(4,20,true);ch.setUint16(6,20,true);ch.setUint16(8,0x0800,true);ch.setUint16(14,0x21,true);
+    ch.setUint32(16,crc,true);ch.setUint32(20,sz,true);ch.setUint32(24,sz,true);ch.setUint16(28,nm.length,true);ch.setUint32(42,off,true);
+    central.push(new Uint8Array(ch.buffer),nm);off+=30+nm.length+sz;
+  }
+  const cd=central.reduce((a,c)=>a+c.length,0),e=new DataView(new ArrayBuffer(22));
+  e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cd,true);e.setUint32(16,off,true);
+  return new Blob([...chunks,...central,new Uint8Array(e.buffer)],{type:'application/zip'});
+}
+
+/* ---------- الحالة ---------- */
+const ST={board:null,name:'',mode:'mask'};let results=[];
+$$('#seg-mode button').forEach(b=>{b.setAttribute('aria-pressed',b.dataset.v===ST.mode);b.onclick=()=>{ST.mode=b.dataset.v;$$('#seg-mode button').forEach(x=>x.setAttribute('aria-pressed',x===b))}});
+
+function showBoard(img){
+  ST.board=img;
+  $('#board').src=`data:${img.mime};base64,${img.data}`;
+  $('#boardwrap').hidden=false;$('#boardact').hidden=false;$('#editgo').disabled=false;
+}
+
+/* ---------- الفصل بجيميناي ---------- */
+async function separate(m){
+  say(m,'جيميناي يفصل كل عنصر…');
+  const src=await loadImg(`data:${ST.board.mime};base64,${ST.board.data}`);
+  const iw=src.naturalWidth,ih=src.naturalHeight,k=Math.min(1,1280/Math.max(iw,ih));
+  const c=document.createElement('canvas');c.width=Math.round(iw*k);c.height=Math.round(ih*k);
+  const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(src,0,0,c.width,c.height);
+  const b64=c.toDataURL('image/jpeg',.92).split(',')[1];
+  const prompt=`Give the segmentation masks for each separate brand identity element in this image: the primary logo lockup, the icon mark, the wordmark, the color palette, the typography specimen, the business card, the app icon, and any other separate element.
+Output a JSON list where each entry contains the 2D bounding box in the key "box_2d", the segmentation mask in the key "mask", and a short descriptive text label in the key "label" (Arabic). One entry per separate element. Do not output the whole board.`;
+  const list=parseJSON(await gemText([{inline_data:{mime_type:'image/jpeg',data:b64}},{text:prompt}]));
+  if(!Array.isArray(list)||!list.length)throw new Error('لم يجد جيميناي عناصر. أعد المحاولة.');
+  results.forEach(r=>URL.revokeObjectURL(r.url));results=[];$('#gal').innerHTML='';
+  let n=0;
+  for(const it of list){
+    if(!Array.isArray(it.box_2d)||it.box_2d.length<4)continue;
+    const [y0,x0,y1,x1]=it.box_2d.map(Number);
+    const X0=Math.max(0,Math.round(Math.min(x0,x1)/1000*iw)),X1=Math.min(iw,Math.round(Math.max(x0,x1)/1000*iw));
+    const Y0=Math.max(0,Math.round(Math.min(y0,y1)/1000*ih)),Y1=Math.min(ih,Math.round(Math.max(y0,y1)/1000*ih));
+    const bw=X1-X0,bh=Y1-Y0;if(bw<8||bh<8)continue;
+    const cv=document.createElement('canvas');cv.width=bw;cv.height=bh;
+    const cx=cv.getContext('2d');cx.drawImage(src,X0,Y0,bw,bh,0,0,bw,bh);
+    if(ST.mode==='mask'&&it.mask){
+      try{
+        const mi=await loadImg(String(it.mask).startsWith('data:')?it.mask:'data:image/png;base64,'+it.mask);
+        const mc=document.createElement('canvas');mc.width=bw;mc.height=bh;
+        const mx=mc.getContext('2d');mx.drawImage(mi,0,0,bw,bh);
+        const md=mx.getImageData(0,0,bw,bh).data,im=cx.getImageData(0,0,bw,bh);
+        for(let i=0;i<md.length;i+=4){const a=(md[i]-96)/64;im.data[i+3]=Math.round(255*Math.max(0,Math.min(1,a)))}
+        cx.putImageData(im,0,0);
+      }catch{}
+    }
+    const blob=await new Promise(r=>cv.toBlob(r,'image/png'));
+    n++;results.push({label:String(it.label||'عنصر '+n),blob,url:URL.createObjectURL(blob),name:`${String(n).padStart(2,'0')}-${safeName(it.label||'element')}.png`});
+  }
+  if(!results.length)throw new Error('لم أستطع قص أي عنصر.');
+  $('#gal').innerHTML=results.map(r=>`<div class="cell"><div class="im"><img src="${r.url}" alt=""></div><div class="cap">${esc(r.label)}</div><a href="${r.url}" download="${esc(r.name)}">تحميل PNG</a></div>`).join('');
+  say(m,`تم فصل ${results.length} عنصر.`,'ok');
+}
+
+/* ---------- التصميم ---------- */
+$('#gen').onclick=e=>busy(e.currentTarget,async()=>{
+  const m=$('#gmsg'),name=$('#name').value.trim(),desc=$('#desc').value.trim(),style=$('#style').value;
+  if(!name){say(m,'اكتب اسم العلامة أولاً.','err');return}
+  ST.name=name;$('#brief').textContent='';
+  try{
+    say(m,'المدير الفني يكتب فكرة الهوية…');
+    const art=parseJSON(await gemText([{text:`You are an award-winning brand identity art director. Brand name: "${name}". Business: ${desc||'not specified'}. Style: ${style}.
+Return ONLY JSON: {"concept_ar":"two sentences in Arabic describing the identity concept and why it fits","image_prompt":"a detailed English description of the visual identity: the logo mark idea (concrete shapes), the exact 5 hex colors, the typeface character for the wordmark, and the mood. Do not describe layout."}`}]));
+    $('#brief').textContent=art.concept_ar||'';
+    say(m,'يرسم لوحة الهوية… (قد تأخذ نصف دقيقة)');
+    const rules=`Create ONE brand identity presentation board on a plain pure white background. Brand name, spelled exactly: "${name}".
+Identity direction: ${art.image_prompt}
+Arrange these elements in a clean grid with wide empty white margins between them. Nothing may overlap or touch: 1) primary logo lockup (mark plus name), 2) the icon mark alone, 3) the wordmark alone, 4) a row of 5 color swatches with hex codes, 5) a typography specimen, 6) a flat business card mockup, 7) a square app icon. No frames, borders or background shapes around elements. Flat vector style, crisp edges.`;
+    showBoard(await gemImage([{text:rules}]));
+    await separate(m);
+  }catch(err){say(m,err.message,'err')}
+});
+
+$('#editgo').onclick=e=>busy(e.currentTarget,async()=>{
+  const m=$('#gmsg'),ins=$('#edit').value.trim();
+  if(!ins){say(m,'اكتب التعديل المطلوب.','err');return}
+  try{
+    say(m,'يطبّق التعديل…');
+    showBoard(await gemImage([{inline_data:{mime_type:ST.board.mime,data:ST.board.data}},{text:`Edit this brand identity board: ${ins}. Keep the same grid layout, the plain white background, and all elements clearly separated with wide white margins. Keep everything else unchanged.`}]));
+    await separate(m);
+  }catch(err){say(m,err.message,'err')}
+});
+
+$('#dlboard').onclick=()=>{if(!ST.board)return;const b=atob(ST.board.data),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);dl(new Blob([u],{type:ST.board.mime}),safeName(ST.name||'brand')+'-board.png')};
+$('#zipall').onclick=e=>busy(e.currentTarget,async()=>{
+  const files=[];for(const r of results)files.push({name:r.name,data:new Uint8Array(await r.blob.arrayBuffer())});
+  dl(makeZip(files),safeName(ST.name||'brand')+'-elements.zip');
+});
+
+/* ---------- الإعدادات ---------- */
+const dlg=$('#keydlg');
+$('#keybtn').onclick=()=>{$('#keyin').value=sg('hf_key');$('#mtext').value=M().text;$('#mimg').value=M().image;try{$('#remember').checked=!!localStorage.getItem('hf_key')}catch{}say($('#kmsg'),'');dlg.showModal()};
+$('#keyclose').onclick=()=>dlg.close();
+$('#keysave').onclick=()=>{const p=$('#remember').checked;ss('hf_key',$('#keyin').value.trim(),p);ss('hf_mtext',$('#mtext').value.trim(),p);ss('hf_mimg',$('#mimg').value.trim(),p);say($('#kmsg'),'تم الحفظ.','ok');setTimeout(()=>dlg.close(),500)};
+if(!sg('hf_key'))say($('#gmsg'),'أضف مفتاح Gemini من «إعدادات Gemini» أولاً. بدونه لا يعمل الذكاء الاصطناعي.','err');
+</script>
+</body>
+</html>
